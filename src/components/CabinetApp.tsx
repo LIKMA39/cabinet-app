@@ -809,7 +809,7 @@ function ModuleTable({icon,title,code,sub,cols,rows,setRows,formInit,renderForm,
           .eq("id", form.id);
 
         if (error) {
-          console.error("Erreur update Supabase :", error.message);
+          console.error("Erreur update Supabase dossiers :", error.message);
           return;
         }
 
@@ -844,7 +844,7 @@ function ModuleTable({icon,title,code,sub,cols,rows,setRows,formInit,renderForm,
           .single();
 
         if (error) {
-          console.error("Erreur insert Supabase :", error.message);
+          console.error("Erreur insert Supabase dossiers :", error.message);
           return;
         }
 
@@ -863,6 +863,60 @@ function ModuleTable({icon,title,code,sub,cols,rows,setRows,formInit,renderForm,
       return;
     } catch (e) {
       console.error("Erreur générale dossiers :", e);
+      return;
+    }
+  }
+
+  if (exportName === "plan_hebdo") {
+    try {
+      if (form.id) {
+        const { error } = await supabase
+          .from("plan_hebdo")
+          .update({
+            action: form.action,
+            responsable: form.responsable,
+            backup: form.backup,
+            echeance: form.echeance,
+            statut: form.statut,
+            observations: form.observations,
+          })
+          .eq("id", form.id);
+
+        if (error) {
+          console.error("Erreur update plan_hebdo :", error.message);
+          return;
+        }
+
+        setRows((p) => p.map((x) => (x.id === form.id ? form : x)));
+      } else {
+        const { data, error } = await supabase
+          .from("plan_hebdo")
+          .insert([
+            {
+              action: form.action,
+              responsable: form.responsable,
+              backup: form.backup,
+              echeance: form.echeance,
+              statut: form.statut,
+              observations: form.observations,
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Erreur insert plan_hebdo :", error.message);
+          return;
+        }
+
+        setRows((p) => [...p, data]);
+      }
+
+      addLog(currentUser.nom, title, form.id ? "Modification" : "Ajout");
+      setModal(false);
+      return;
+    } catch (e) {
+      console.error("Erreur générale plan_hebdo :", e);
       return;
     }
   }
@@ -896,10 +950,30 @@ const remove = async (row) => {
     }
   }
 
+  if (exportName === "plan_hebdo") {
+    try {
+      const { error } = await supabase
+        .from("plan_hebdo")
+        .delete()
+        .eq("id", row.id);
+
+      if (error) {
+        console.error("Erreur delete plan_hebdo :", error.message);
+        return;
+      }
+
+      setRows((p) => p.filter((x) => x.id !== row.id));
+      addLog(currentUser.nom, title, "Suppression");
+      return;
+    } catch (e) {
+      console.error("Erreur générale suppression plan_hebdo :", e);
+      return;
+    }
+  }
+
   setRows((p) => p.filter((x) => x.id !== row.id));
   addLog(currentUser.nom, title, "Suppression");
 };
-
   return (
     <Col gap={14}>
       <H icon={icon} title={title} code={code} sub={sub}
@@ -964,16 +1038,30 @@ export default function CabinetApp() {
       .order("id", { ascending: true });
 
     if (error) {
-      console.error("Erreur Supabase :", error.message);
+      console.error("Erreur Supabase dossiers :", error.message);
     } else {
       setDossiers(data || []);
     }
   }
 
+  async function loadHebdo() {
+    const { data, error } = await supabase
+      .from("plan_hebdo")
+      .select("*")
+      .order("id", { ascending: true });
+
+    if (error) {
+      console.error("Erreur Supabase plan_hebdo :", error.message);
+    } else {
+      setHebdo(data || []);
+    }
+  }
+
   loadDossiers();
+  loadHebdo();
 }, []);
   const [taches,setTaches] = useState(TACHES_INIT);
-  const [hebdo,setHebdo] = useState(HEBDO_INIT);
+  const [hebdo,setHebdo] = useState([]);
   const [categ,setCateg] = useState(CATEG_INIT);
   const [arretes,setArretes] = useState(ARRETES_INIT);
   const [declarations,setDeclarations] = useState(DECL_INIT);
